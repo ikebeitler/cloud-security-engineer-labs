@@ -1,0 +1,5 @@
+let threshold = 500;
+SigninLogs
+| extend Location = tostring(LocationDetails.countryOrRegion)
+| summarize FirstSeen=min(TimeGenerated), LastSeen=max(TimeGenerated), Locations=make_set(Location) by UserPrincipalName
+| where array_length(Locations) > 1
