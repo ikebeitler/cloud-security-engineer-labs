@@ -1,0 +1,3 @@
+SigninLogs
+| where RiskLevelDuringSignIn != "none"
+| project UserPrincipalName, RiskLevelDuringSignIn, IPAddress, AppDisplayName, TimeGenerated
