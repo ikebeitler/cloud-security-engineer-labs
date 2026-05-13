@@ -1,0 +1,57 @@
+name: Azure Bicep Deployment
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  AZURE_LOCATION: eastus
+  RESOURCE_GROUP: rg-bicep-lab
+  BICEP_FILE: labs/azure-infrastructure-security/bicep/main.bicep
+
+jobs:
+  deploy-bicep:
+    name: Build & Deploy Bicep Template
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: >
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Install Azure CLI Bicep module
+        run: |
+          az bicep install
+          az bicep version
+
+      - name: Create Resource Group (idempotent)
+        run: |
+          az group create \
+            --name $RESOURCE_GROUP \
+            --location $AZURE_LOCATION
+
+      - name: Validate Bicep Template
+        run: |
+          az deployment group what-if \
+            --resource-group $RESOURCE_GROUP \
+            --template-file $BICEP_FILE
+
+      - name: Deploy Bicep Template
+        if: github.ref == 'refs/heads/main'
+        run: |
+          az deployment group create \
+            --resource-group $RESOURCE_GROUP \
+            --template-file $BICEP_FILE
